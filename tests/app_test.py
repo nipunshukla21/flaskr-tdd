@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from project.app import app, db
+from project import models
 
 TEST_DB = "test.db"
 
@@ -77,7 +78,11 @@ def test_messages(client):
 
 def test_delete_message(client):
     """Ensure the messages are being deleted"""
-    rv = client.get('/delete/1')
+    rv = client.get("/delete/1")
+    data = json.loads(rv.data)
+    assert data["status"] == 0
+    login(client, app.config["USERNAME"], app.config["PASSWORD"])
+    rv = client.get("/delete/1")
     data = json.loads(rv.data)
     assert data["status"] == 1
 
@@ -91,3 +96,18 @@ def test_search(client):
     response = client.get("/search/?query=test")
     assert response.status_code == 200
     assert b"Search test" in response.data
+
+def test_delete_message_with_login(client):
+    login(client, app.config["USERNAME"], app.config["PASSWORD"])
+    rv = client.post(
+        "/add",
+        data=dict(title="Delete with login test", text="<strong>HTML</strong> allowed here"),
+        follow_redirects=True,
+    )
+    post = models.Post.query.filter_by(title="Delete with login test").first()
+    assert post is not None
+    logout(client)
+    assert client.get(f"delete/{post.id}").status_code == 401
+    login(client, app.config["USERNAME"], app.config["PASSWORD"])
+    response = client.get(f"delete/{post.id}")
+    assert response.status_code == 200
