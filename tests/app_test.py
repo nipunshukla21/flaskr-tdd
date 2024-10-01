@@ -21,6 +21,7 @@ def client():
         yield app.test_client()  # tests run here
         db.drop_all()  # teardown
 
+
 def login(client, username, password):
     """Login helper function"""
     return client.post(
@@ -76,6 +77,7 @@ def test_messages(client):
     assert b"&lt;Hello&gt;" in rv.data
     assert b"<strong>HTML</strong> allowed here" in rv.data
 
+
 def test_delete_message(client):
     """Ensure the messages are being deleted"""
     rv = client.get("/delete/1")
@@ -85,6 +87,7 @@ def test_delete_message(client):
     rv = client.get("/delete/1")
     data = json.loads(rv.data)
     assert data["status"] == 1
+
 
 def test_search(client):
     login(client, app.config["USERNAME"], app.config["PASSWORD"])
@@ -97,11 +100,14 @@ def test_search(client):
     assert response.status_code == 200
     assert b"Search test" in response.data
 
+
 def test_delete_message_with_login(client):
     login(client, app.config["USERNAME"], app.config["PASSWORD"])
     rv = client.post(
         "/add",
-        data=dict(title="Delete with login test", text="<strong>HTML</strong> allowed here"),
+        data=dict(
+            title="Delete with login test", text="<strong>HTML</strong> allowed here"
+        ),
         follow_redirects=True,
     )
     post = models.Post.query.filter_by(title="Delete with login test").first()
